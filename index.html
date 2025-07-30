@@ -213,6 +213,14 @@ function loadTrackedItems() {
   const saved = localStorage.getItem('trackedItems');
   if (saved) {
     trackedItems = JSON.parse(saved);
+    let changed = false;
+    trackedItems.forEach(item => {
+      if (!item.mode) {
+        item.mode = 'market';
+        changed = true;
+      }
+    });
+    if (changed) saveTrackedItems(); // re-save with mode set
   }
 }
 
