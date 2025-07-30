@@ -154,14 +154,14 @@
   }
 
   function addItemToGrid(item) {
-    // Prevent duplicates
     if (trackedItems.some(i => i.id === item.id)) return;
     trackedItems.push(item);
     saveTrackedItems();
     renderGrid();
   }
 
-  function removeItem(id) {
+  // Expose removeItem globally for inline onclick to work
+  window.removeItem = function(id) {
     trackedItems = trackedItems.filter(item => item.id !== id);
     saveTrackedItems();
     renderGrid();
@@ -199,11 +199,8 @@
       if (currentPrice > prevPrice) priceClass = 'up';
       else if (currentPrice < prevPrice) priceClass = 'down';
     }
-
     setPreviousPrice(item.id, currentPrice);
-
     const priceText = currentPrice !== null ? currentPrice.toLocaleString() + ' gp' : 'N/A';
-
     return `<div class="price ${priceClass}">${priceText}</div>`;
   }
 
@@ -224,7 +221,10 @@
     container.innerHTML = '';
     const prices = await fetchPrices();
 
+    console.log('Rendering tracked items:', trackedItems);
+
     trackedItems.forEach(item => {
+      console.log('Rendering item:', item.name, 'ID:', item.id);
       const box = document.createElement('div');
       box.className = 'item-box';
 
