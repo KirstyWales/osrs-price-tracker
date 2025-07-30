@@ -134,14 +134,17 @@
   }
 
   function loadTrackedItems() {
-    const saved = localStorage.getItem('trackedItems');
-    if (saved) trackedItems = JSON.parse(saved);
+  const saved = localStorage.getItem('trackedItems');
+  if (saved) {
+    trackedItems = JSON.parse(saved);
+    console.log('Loaded trackedItems:', trackedItems);
   }
+}
 
   async function fetchPrices() {
     if (trackedItems.length === 0) return {};
     try {
-      const res = await fetch('https://corsproxy.io/?https://prices.runescape.wiki/api/v1/osrs/latest');
+      const res = await fetch('https://prices.runescape.wiki/api/v1/osrs/latest');
       const data = await res.json();
       return data.data;
     } catch (e) {
