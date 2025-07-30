@@ -38,4 +38,31 @@
       "abyssal_whip", "dragon_claws", "toxic_blowpipe", "bandos_tassets", "armadyl_chestplate",
       "zamorakian_spear", "dragon_warhammer", "amulet_of_torture", "serpentine_helm", "kodai_insignia",
       "spectral_spirit_shield", "elysian_spirit_shield", "arcane_spirit_shield", "bludgeon", "scythe_of_vitur",
-      "ghrazi_rapier", "twisted_bow", "dragon_hunter_crossbow", "ancestral_robe_top", "ances
+      "ghrazi_rapier", "twisted_bow", "dragon_hunter_crossbow", "ancestral_robe_top", "ancestral_robe_bottom",
+      "infernal_cape", "primordial_boots", "eternal_boots", "pegasian_boots", "bandos_chestplate",
+      "armadyl_helmet", "berserker_ring", "archers_ring", "seers_ring", "warrior_ring",
+      "trident_of_the_swamp", "occult_necklace", "necklace_of_anguish", "tormented_bracelet", "zaryte_crossbow"
+    ];
+
+    async function loadPrices() {
+      const res = await fetch('https://prices.runescape.wiki/api/v1/osrs/latest');
+      const data = await res.json();
+      const container = document.getElementById("price-grid");
+
+      trackedItems.forEach(item => {
+        const info = data.data[item];
+        const price = info ? info.high.toLocaleString() : "N/A";
+        const box = document.createElement("div");
+        box.className = "item-box";
+        box.innerHTML = `
+          <div class="item-name">${item.replace(/_/g, ' ')}</div>
+          <div>High Price: ${price} gp</div>
+        `;
+        container.appendChild(box);
+      });
+    }
+
+    loadPrices();
+  </script>
+</body>
+</html>
