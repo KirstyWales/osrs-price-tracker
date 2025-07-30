@@ -152,7 +152,7 @@
 
   function createPriceElement(item, priceData) {
     const prevPrice = getPreviousPrice(item.id);
-    const currentPrice = priceData?.high ?? null;
+    const currentPrice = priceData?.[item.id]?.high ?? null;
     let priceClass = 'same';
     if (prevPrice !== null && currentPrice !== null) {
       if (currentPrice > prevPrice) priceClass = 'up';
