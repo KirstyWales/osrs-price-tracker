@@ -69,6 +69,38 @@
   .price.same {
     color: #aaa;
   }
+  /* Remove button styling */
+  .remove-btn {
+    background: transparent;
+    border: none;
+    color: #e53935;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 0;
+    margin-left: 8px;
+    user-select: none;
+  }
+  .remove-btn:hover {
+    color: #ff6659;
+  }
+  /* Flex container for item name + icon + remove */
+  .item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+  .item-name-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .item-icon {
+    width: 24px;
+    height: 24px;
+  }
 </style>
 </head>
 <body>
@@ -129,17 +161,23 @@
     renderGrid();
   }
 
+  function removeItem(id) {
+    trackedItems = trackedItems.filter(item => item.id !== id);
+    saveTrackedItems();
+    renderGrid();
+  }
+
   function saveTrackedItems() {
     localStorage.setItem('trackedItems', JSON.stringify(trackedItems));
   }
 
   function loadTrackedItems() {
-  const saved = localStorage.getItem('trackedItems');
-  if (saved) {
-    trackedItems = JSON.parse(saved);
-    console.log('Loaded trackedItems:', trackedItems);
+    const saved = localStorage.getItem('trackedItems');
+    if (saved) {
+      trackedItems = JSON.parse(saved);
+      console.log('Loaded trackedItems:', trackedItems);
+    }
   }
-}
 
   async function fetchPrices() {
     if (trackedItems.length === 0) return {};
@@ -189,8 +227,17 @@
     trackedItems.forEach(item => {
       const box = document.createElement('div');
       box.className = 'item-box';
+
+      const iconUrl = `https://www.osrsbox.com/osrsbox-db/items-icons/${item.id}.png`;
+
       box.innerHTML = `
-        <div class="item-name">${item.name}</div>
+        <div class="item-header">
+          <div class="item-name-container">
+            <img src="${iconUrl}" alt="${item.name}" class="item-icon" />
+            <div class="item-name">${item.name}</div>
+          </div>
+          <button class="remove-btn" aria-label="Remove item" title="Remove item" onclick="removeItem(${item.id})">×</button>
+        </div>
         ${createPriceElement(item, prices)}
       `;
       container.appendChild(box);
