@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RuneScape Item Tracker</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #eee;
+      padding: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+    }
+    .item-box {
+      background: #222;
+      border: 1px solid #444;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .item-name {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>RuneScape Real-time Price Tracker</h1>
+  <div class="grid" id="price-grid"></div>
+
+  <script>
+    const trackedItems = [
+      "abyssal_whip", "dragon_claws", "toxic_blowpipe", "bandos_tassets", "armadyl_chestplate",
+      "zamorakian_spear", "dragon_warhammer", "amulet_of_torture", "serpentine_helm", "kodai_insignia",
+      "spectral_spirit_shield", "elysian_spirit_shield", "arcane_spirit_shield", "bludgeon", "scythe_of_vitur",
+      "ghrazi_rapier", "twisted_bow", "dragon_hunter_crossbow", "ancestral_robe_top", "ances
