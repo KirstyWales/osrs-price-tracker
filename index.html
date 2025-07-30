@@ -224,25 +224,25 @@
     console.log('Rendering tracked items:', trackedItems);
 
     trackedItems.forEach(item => {
-      console.log('Rendering item:', item.name, 'ID:', item.id);
-      const box = document.createElement('div');
-      box.className = 'item-box';
+  const box = document.createElement('div');
+  box.className = 'item-box';
 
-      const iconUrl = `https://www.osrsbox.com/osrsbox-db/items-icons/${item.id}.png`;
+  const iconUrl = `https://www.osrsbox.com/osrsbox-db/items-icons/${item.id}.png`;
 
-      box.innerHTML = `
-        <div class="item-header">
-          <div class="item-name-container">
-            <img src="${iconUrl}" alt="${item.name}" class="item-icon" />
-            <div class="item-name">${item.name}</div>
-          </div>
-          <button class="remove-btn" aria-label="Remove item" title="Remove item" onclick="removeItem(${item.id})">×</button>
-        </div>
-        ${createPriceElement(item, prices)}
-      `;
-      container.appendChild(box);
-    });
-  }
+  box.innerHTML = `
+    <div class="item-header">
+      <div class="item-name-container">
+        <img src="${iconUrl}" alt="${item.name}" class="item-icon"
+             onerror="this.onerror=null; this.src='https://via.placeholder.com/24?text=?';" />
+        <div class="item-name">${item.name}</div>
+      </div>
+      <button class="remove-btn" aria-label="Remove item" title="Remove item" onclick="removeItem(${item.id})">×</button>
+    </div>
+    ${createPriceElement(item, prices)}
+  `;
+  container.appendChild(box);
+});
+
 
   document.getElementById('searchInput').addEventListener('input', (e) => {
     const resultsDiv = document.getElementById('results');
