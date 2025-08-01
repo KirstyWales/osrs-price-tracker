@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>OSRS Price Tracker Prototype</title>
+<title>OSRS Herb Yield Tracker</title>
 <style>
   body {
     background: #111;
@@ -13,291 +13,118 @@
     max-width: 900px;
     margin: auto;
   }
-  h1 {
+  h1, h2 {
     margin-bottom: 10px;
   }
-  #search-container {
-    margin-bottom: 20px;
-  }
-  input[type="text"] {
-    width: 100%;
+  input, select {
     padding: 10px;
+    margin: 5px 0;
+    width: 100%;
     font-size: 1rem;
     border-radius: 6px;
     border: none;
     outline: none;
   }
-  #results {
-    background: #222;
-    border-radius: 6px;
-    max-height: 200px;
-    overflow-y: auto;
-    margin-top: 5px;
+  label {
+    margin-top: 10px;
+    display: block;
   }
-  .result-item {
-    padding: 8px 10px;
-    cursor: pointer;
-  }
-  .result-item:hover {
-    background: #444;
-  }
-  #grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill,minmax(140px,1fr));
-    gap: 12px;
-  }
-  .item-box {
+  .result-box {
     background: #222;
     border-radius: 6px;
     padding: 10px;
-    text-align: center;
-    box-shadow: 0 0 8px #222 inset;
-  }
-  .item-name {
-    font-weight: bold;
-    margin-bottom: 5px;
-  }
-  .price {
-    font-size: 0.9rem;
-  }
-  .price.up {
-    color: #4caf50;
-  }
-  .price.down {
-    color: #e53935;
-  }
-  .price.same {
-    color: #aaa;
-  }
-  .remove-btn {
-    background: transparent;
-    border: none;
-    color: #e53935;
-    font-weight: bold;
-    cursor: pointer;
-    font-size: 18px;
-    line-height: 1;
-    padding: 0;
-    margin-left: 8px;
-    user-select: none;
-  }
-  .remove-btn:hover {
-    color: #ff6659;
-  }
-  .item-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 5px;
-  }
-  .item-name-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .item-icon {
-    width: 24px;
-    height: 24px;
-  }
-  .toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 34px;
-    height: 18px;
-    margin-top: 5px;
-  }
-  .toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  .toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #555;
-    border-radius: 34px;
-    transition: 0.2s;
-  }
-  .toggle-slider:before {
-    position: absolute;
-    content: "";
-    height: 14px;
-    width: 14px;
-    left: 2px;
-    bottom: 2px;
-    background-color: white;
-    border-radius: 50%;
-    transition: 0.2s;
-  }
-  .toggle-switch input:checked + .toggle-slider {
-    background-color: #4caf50;
-  }
-  .toggle-switch input:checked + .toggle-slider:before {
-    transform: translateX(16px);
+    margin-top: 15px;
   }
 </style>
 </head>
 <body>
-<h1>OSRS Price Tracker Prototype</h1>
-<div id="search-container">
-  <input id="searchInput" type="text" placeholder="Search for an item (e.g. Saradomin brew)" autocomplete="off" />
-  <div id="results"></div>
-</div>
-<div id="grid"></div>
+<h1>OSRS Herb Yield Estimator</h1>
+<form id="herbForm">
+  <label for="herb">Select Herb Type:</label>
+  <select id="herb">
+    <option value="ranarr">Ranarr (Lvl 32)</option>
+    <option value="toadflax">Toadflax (Lvl 38)</option>
+    <option value="snapdragon">Snapdragon (Lvl 62)</option>
+    <!-- Add more as needed -->
+  </select>
+
+  <label for="level">Farming Level:</label>
+  <input type="number" id="level" value="85" min="1" max="120" />
+
+  <label for="compost">Compost Type:</label>
+  <select id="compost">
+    <option value="3">Ultracompost</option>
+    <option value="2">Supercompost</option>
+    <option value="1">Compost</option>
+    <option value="0">None</option>
+  </select>
+
+  <label><input type="checkbox" id="secateurs" /> Magic Secateurs</label>
+  <label><input type="checkbox" id="cape" /> Farming Cape</label>
+  <label><input type="checkbox" id="attas" /> Attas Plant Active</label>
+  <label><input type="checkbox" id="diary10" /> +10 Diary Boost</label>
+  <label><input type="checkbox" id="diary17" /> +17 Diary Boost</label>
+  <label><input type="checkbox" id="diary25" /> +25 Diary Boost</label>
+
+  <button type="submit">Calculate Expected Yield</button>
+</form>
+<div id="result" class="result-box"></div>
+
 <script>
-let mapping = [];
-let trackedItems = [];
-
-async function fetchMapping() {
-  const res = await fetch('https://prices.runescape.wiki/api/v1/osrs/mapping');
-  mapping = await res.json();
-}
-
-function normalize(str) {
-  return str.toLowerCase().replace(/[^a-z0-9]+/g, '');
-}
-
-function filterMapping(query) {
-  const q = normalize(query);
-  if (!q) return [];
-  return mapping.filter(item => normalize(item.name).includes(q)).slice(0, 20);
-}
-
-function createResultItem(item) {
-  const div = document.createElement('div');
-  div.className = 'result-item';
-  div.textContent = `${item.name} (${item.members ? 'Members' : 'Free'})`;
-  div.onclick = () => {
-    addItemToGrid({ ...item, mode: 'market' });
-    clearResults();
-    document.getElementById('searchInput').value = '';
-  };
-  return div;
-}
-
-function clearResults() {
-  document.getElementById('results').innerHTML = '';
-}
-
-function addItemToGrid(item) {
-  if (trackedItems.some(i => i.id === item.id)) return;
-  trackedItems.push(item);
-  saveTrackedItems();
-  renderGrid();
-}
-
-window.removeItem = function(id) {
-  trackedItems = trackedItems.filter(item => item.id !== id);
-  saveTrackedItems();
-  renderGrid();
+const HERB_CTSlow = {
+  ranarr: 45,
+  toadflax: 40,
+  snapdragon: 50
 };
+const CTShigh = 80;
 
-window.toggleMode = function(id) {
-  const item = trackedItems.find(i => i.id === id);
-  if (item) {
-    item.mode = item.mode === 'alch' ? 'market' : 'alch';
-    saveTrackedItems();
-    renderGrid();
-  }
-};
-
-function saveTrackedItems() {
-  localStorage.setItem('trackedItems', JSON.stringify(trackedItems));
+function applyBoosts(cts, secateurs, cape, attas, diary) {
+  let bonus = 0;
+  if (secateurs) bonus += 0.1;
+  if (cape) bonus += 0.05;
+  cts = Math.floor(cts * (1 + bonus));
+  cts += diary;
+  if (attas) cts = Math.floor(cts * 1.05);
+  return cts;
 }
 
-function loadTrackedItems() {
-  const saved = localStorage.getItem('trackedItems');
-  if (saved) {
-    trackedItems = JSON.parse(saved);
-    let changed = false;
-    trackedItems.forEach(item => {
-      if (!item.mode) {
-        item.mode = 'market';
-        changed = true;
-      }
-    });
-    if (changed) saveTrackedItems(); // re-save with mode set
-  }
+function calcChanceToSave(ctSlow, level, ctHigh) {
+  const save = 1 + Math.floor((ctSlow * (99 - level) + ctHigh * (level - 1) + 49) / 98);
+  return save / 256;
 }
 
-async function fetchPrices() {
-  if (trackedItems.length === 0) return {};
-  const res = await fetch('https://prices.runescape.wiki/api/v1/osrs/latest');
-  const data = await res.json();
-  return data.data;
+function expectedYield(lives, p) {
+  return Math.round(lives / (1 - p));
 }
 
-function createPriceElement(item, priceData) {
-  if (item.mode === 'alch') {
-    const alchValue = item.highalch ?? 0;
-    return `<div class="price">${alchValue.toLocaleString()} gp (Alch)</div>`;
-  }
-  const prevPrice = getPreviousPrice(item.id);
-  const currentPrice = priceData?.[item.id]?.high ?? null;
-  let priceClass = 'same';
-  if (prevPrice !== null && currentPrice !== null) {
-    if (currentPrice > prevPrice) priceClass = 'up';
-    else if (currentPrice < prevPrice) priceClass = 'down';
-  }
-  setPreviousPrice(item.id, currentPrice);
-  const priceText = currentPrice !== null ? currentPrice.toLocaleString() + ' gp' : 'N/A';
-  return `<div class="price ${priceClass}">${priceText}</div>`;
-}
+document.getElementById("herbForm").addEventListener("submit", function(e) {
+  e.preventDefault();
 
-function getPreviousPrice(id) {
-  const val = localStorage.getItem(`price_${id}`);
-  return val ? Number(val) : null;
-}
+  const herb = document.getElementById("herb").value;
+  const level = parseInt(document.getElementById("level").value);
+  const compost = parseInt(document.getElementById("compost").value);
+  const lives = 3 + compost;
 
-function setPreviousPrice(id, price) {
-  if (price !== null) localStorage.setItem(`price_${id}`, price);
-}
+  const secateurs = document.getElementById("secateurs").checked;
+  const cape = document.getElementById("cape").checked;
+  const attas = document.getElementById("attas").checked;
+  let diaryBoost = 0;
+  if (document.getElementById("diary25").checked) diaryBoost = 25;
+  else if (document.getElementById("diary17").checked) diaryBoost = 17;
+  else if (document.getElementById("diary10").checked) diaryBoost = 10;
 
-async function renderGrid() {
-  const container = document.getElementById('grid');
-  container.innerHTML = '';
-  const prices = await fetchPrices();
-  trackedItems.forEach(item => {
-    const box = document.createElement('div');
-    box.className = 'item-box';
-    const iconUrl = `https://www.osrsbox.com/osrsbox-db/items-icons/${item.id}.png`;
-    box.innerHTML = `
-      <div class="item-header">
-        <div class="item-name-container">
-          <img src="${iconUrl}" alt="${item.name}" class="item-icon"
-               onerror="this.onerror=null;this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjY2NjY2NjIi8+PHRleHQgeD0iMTIiIHk9IjEyIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiI/PzwvdGV4dD48L3N2Zz4=';" />
-          <div class="item-name">${item.name}</div>
-        </div>
-        <button class="remove-btn" onclick="removeItem(${item.id})">&times;</button>
-      </div>
-      ${createPriceElement(item, prices)}
-      <label class="toggle-switch" title="Toggle Alch/Market">
-        <input type="checkbox" ${item.mode === 'alch' ? 'checked' : ''} onchange="toggleMode(${item.id})">
-        <span class="toggle-slider"></span>
-      </label>
-    `;
-    container.appendChild(box);
-  });
-}
+  const rawCTSlow = HERB_CTSlow[herb];
+  const boostedLow = applyBoosts(rawCTSlow, secateurs, cape, attas, diaryBoost);
+  const boostedHigh = applyBoosts(CTShigh, secateurs, cape, attas, diaryBoost);
 
-document.getElementById('searchInput').addEventListener('input', (e) => {
-  const query = e.target.value.trim();
-  const resultsDiv = document.getElementById('results');
-  if (!query) return clearResults();
-  const results = filterMapping(query);
-  resultsDiv.innerHTML = '';
-  results.forEach(item => resultsDiv.appendChild(createResultItem(item)));
+  const saveChance = calcChanceToSave(boostedLow, level, boostedHigh);
+  const yieldEst = expectedYield(lives, saveChance);
+
+  document.getElementById("result").innerHTML = `
+    <strong>Estimated Yield:</strong> ${yieldEst} herbs per patch<br />
+    <strong>Chance to Save Life:</strong> ${(saveChance * 100).toFixed(2)}%
+  `;
 });
-
-(async function init() {
-  await fetchMapping();
-  loadTrackedItems();
-  renderGrid();
-})();
 </script>
 </body>
 </html>
