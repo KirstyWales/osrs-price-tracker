@@ -3,128 +3,171 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>OSRS Herb Yield Tracker</title>
+<title>OSRS Multi-Herb Farming Profit Calculator</title>
 <style>
   body {
     background: #111;
     color: #eee;
-    font-family: sans-serif;
+    font-family: Arial, sans-serif;
+    max-width: 700px;
+    margin: 20px auto;
     padding: 20px;
-    max-width: 900px;
-    margin: auto;
-  }
-  h1, h2 {
-    margin-bottom: 10px;
-  }
-  input, select {
-    padding: 10px;
-    margin: 5px 0;
-    width: 100%;
-    font-size: 1rem;
-    border-radius: 6px;
-    border: none;
-    outline: none;
   }
   label {
-    margin-top: 10px;
     display: block;
+    margin: 10px 0 5px;
   }
-  .result-box {
-    background: #222;
+  input[type="number"], select {
+    width: 100%;
+    padding: 8px;
+    font-size: 1rem;
+    border-radius: 4px;
+    border: none;
+  }
+  input[type="checkbox"] {
+    margin-right: 8px;
+    transform: scale(1.1);
+  }
+  .checkbox-label {
+    margin-top: 6px;
+    user-select: none;
+  }
+  button {
+    margin-top: 20px;
+    background-color: #4caf50;
+    border: none;
+    color: white;
+    padding: 12px;
+    width: 100%;
+    font-size: 1.1rem;
     border-radius: 6px;
-    padding: 10px;
+    cursor: pointer;
+  }
+  #results {
+    margin-top: 25px;
+    background: #222;
+    padding: 15px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
     margin-top: 15px;
+  }
+  th, td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #444;
+    text-align: center;
+  }
+  th {
+    background-color: #333;
   }
 </style>
 </head>
 <body>
-<h1>OSRS Herb Yield Estimator</h1>
-<form id="herbForm">
-  <label for="herb">Select Herb Type:</label>
-  <select id="herb">
-    <option value="ranarr">Ranarr (Lvl 32)</option>
-    <option value="toadflax">Toadflax (Lvl 38)</option>
-    <option value="snapdragon">Snapdragon (Lvl 62)</option>
-    <!-- Add more as needed -->
+
+<h1>OSRS Multi-Herb Farming Profit Calculator</h1>
+
+<form id="calcForm">
+  <label for="patches">Number of farming patches (1–12):</label>
+  <input type="number" id="patches" name="patches" value="8" min="1" max="12" required />
+
+  <label for="herbSelect">Select Herb:</label>
+  <select id="herbSelect">
+    <option value="Ranarr">Ranarr</option>
+    <option value="Toadflax">Toadflax</option>
+    <option value="Snapdragon">Snapdragon</option>
   </select>
 
-  <label for="level">Farming Level:</label>
-  <input type="number" id="level" value="85" min="1" max="120" />
+  <label class="checkbox-label">
+    <input type="checkbox" id="magicSecateurs" /> Magic Secateurs (+10% yield)
+  </label>
+  <label class="checkbox-label">
+    <input type="checkbox" id="farmingCape" /> Farming Cape (+5% yield)
+  </label>
+  <label class="checkbox-label">
+    <input type="checkbox" id="faladorDiary" /> Falador Medium Diary (+10% yield on Falador patch)
+  </label>
+  <label class="checkbox-label">
+    <input type="checkbox" id="catherbyDiaryMed" /> Kandarin Medium Diary (+5% yield)
+  </label>
+  <label class="checkbox-label">
+    <input type="checkbox" id="catherbyDiaryHard" /> Kandarin Hard Diary (+10% yield)
+  </label>
+  <label class="checkbox-label">
+    <input type="checkbox" id="catherbyDiaryElite" /> Kandarin Elite Diary (+15% yield)
+  </label>
+  <label class="checkbox-label">
+    <input type="checkbox" id="kourendDiary" /> Hard Kourend & Kebos Diary (+5% yield)
+  </label>
 
-  <label for="compost">Compost Type:</label>
-  <select id="compost">
-    <option value="3">Ultracompost</option>
-    <option value="2">Supercompost</option>
-    <option value="1">Compost</option>
-    <option value="0">None</option>
-  </select>
-
-  <label><input type="checkbox" id="secateurs" /> Magic Secateurs</label>
-  <label><input type="checkbox" id="cape" /> Farming Cape</label>
-  <label><input type="checkbox" id="attas" /> Attas Plant Active</label>
-  <label><input type="checkbox" id="diary10" /> +10 Kandarin Diary Boost</label>
-  <label><input type="checkbox" id="diary17" /> +17 Kandarin Diary Boost</label>
-  <label><input type="checkbox" id="diary25" /> +25 Kandarin Diary Boost</label>
-
-  <button type="submit">Calculate Expected Yield</button>
+  <button type="submit">Calculate Profit</button>
 </form>
-<div id="result" class="result-box"></div>
+
+<div id="results"></div>
 
 <script>
-const HERB_CTSlow = {
-  ranarr: 45,
-  toadflax: 40,
-  snapdragon: 50
-};
-const CTShigh = 80;
+  const API_URL = 'https://prices.runescape.wiki/api/v1/osrs/latest';
+  const form = document.getElementById('calcForm');
+  const resultsDiv = document.getElementById('results');
 
-function applyBoosts(cts, secateurs, cape, attas, diary) {
-  let bonus = 0;
-  if (secateurs) bonus += 0.1;
-  if (cape) bonus += 0.05;
-  cts = Math.floor(cts * (1 + bonus));
-  cts += diary;
-  if (attas) cts = Math.floor(cts * 1.05);
-  return cts;
-}
+  const HERBS = {
+    Ranarr: {
+      name: 'Ranarr',
+      seedID: 5295,
+      herbID: 257,
+      secondaryID: 231,
+      potionID: 2434,
+      baseYield: 4.4
+    },
+    Toadflax: {
+      name: 'Toadflax',
+      seedID: 5297,
+      herbID: 2998,
+      secondaryID: 6693,
+      potionID: 6685,
+      baseYield: 4.3
+    },
+    Snapdragon: {
+      name: 'Snapdragon',
+      seedID: 5301,
+      herbID: 3000,
+      secondaryID: 223,
+      potionID: 3026,
+      baseYield: 3.8
+    }
+  };
 
-function calcChanceToSave(ctSlow, level, ctHigh) {
-  const save = 1 + Math.floor((ctSlow * (99 - level) + ctHigh * (level - 1) + 49) / 98);
-  return save / 256;
-}
+  const ULTRACOMPOST_ID = 21483;
+  const VIAL_ID = 227;
+  let livePrices = {};
 
-function expectedYield(lives, p) {
-  return Math.round(lives / (1 - p));
-}
+  async function fetchLivePrices() {
+    try {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+      livePrices = data.data || {};
+    } catch (e) {
+      alert('Failed to fetch live prices. Try refreshing.');
+    }
+  }
 
-document.getElementById("herbForm").addEventListener("submit", function(e) {
-  e.preventDefault();
+  function getPrice(id) {
+    return livePrices[id]?.high || 0;
+  }
 
-  const herb = document.getElementById("herb").value;
-  const level = parseInt(document.getElementById("level").value);
-  const compost = parseInt(document.getElementById("compost").value);
-  const lives = 3 + compost;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await fetchLivePrices();
 
-  const secateurs = document.getElementById("secateurs").checked;
-  const cape = document.getElementById("cape").checked;
-  const attas = document.getElementById("attas").checked;
-  let diaryBoost = 0;
-  if (document.getElementById("diary25").checked) diaryBoost = 25;
-  else if (document.getElementById("diary17").checked) diaryBoost = 17;
-  else if (document.getElementById("diary10").checked) diaryBoost = 10;
+    const herbKey = document.getElementById('herbSelect').value;
+    const herb = HERBS[herbKey];
+    const patches = Number(form.patches.value);
 
-  const rawCTSlow = HERB_CTSlow[herb];
-  const boostedLow = applyBoosts(rawCTSlow, secateurs, cape, attas, diaryBoost);
-  const boostedHigh = applyBoosts(CTShigh, secateurs, cape, attas, diaryBoost);
-
-  const saveChance = calcChanceToSave(boostedLow, level, boostedHigh);
-  const yieldEst = expectedYield(lives, saveChance);
-
-  document.getElementById("result").innerHTML = `
-    <strong>Estimated Yield:</strong> ${yieldEst} herbs per patch<br />
-    <strong>Chance to Save Life:</strong> ${(saveChance * 100).toFixed(2)}%
-  `;
-});
-</script>
-</body>
-</html>
+    let yieldBonus = 0;
+    if (form.magicSecateurs.checked) yieldBonus += 0.10;
+    if (form.farmingCape.checked) yieldBonus += 0.05;
+    if (form.faladorDiary.checked) yieldBonus += 0.10;
+    if (form.catherbyDiaryMed.checked) yieldBonus += 0.05;
